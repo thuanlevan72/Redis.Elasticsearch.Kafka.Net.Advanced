@@ -12,6 +12,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TodoApp.ReadApi", "TodoApp.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TodoApp.WriteApi", "TodoApp.WriteApi\TodoApp.WriteApi.csproj", "{0C0CA2E4-6982-4318-AC15-D07A2D750E55}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ApiGateway", "ApiGateway\ApiGateway.csproj", "{74C1A153-651B-4BD5-A864-F37AA97E2021}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -38,6 +40,10 @@ Global
 		{0C0CA2E4-6982-4318-AC15-D07A2D750E55}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{0C0CA2E4-6982-4318-AC15-D07A2D750E55}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{0C0CA2E4-6982-4318-AC15-D07A2D750E55}.Release|Any CPU.Build.0 = Release|Any CPU
+		{74C1A153-651B-4BD5-A864-F37AA97E2021}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{74C1A153-651B-4BD5-A864-F37AA97E2021}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{74C1A153-651B-4BD5-A864-F37AA97E2021}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{74C1A153-651B-4BD5-A864-F37AA97E2021}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
