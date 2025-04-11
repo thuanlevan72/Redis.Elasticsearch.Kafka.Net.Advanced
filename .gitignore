@@ -1,0 +1,89 @@
+# User-specific files
+*.user
+*.userosscache
+*.suo
+*.sln.docstates
+
+# Build results
+[Dd]ebug/
+[Dd]ebugPublic/
+[Rr]elease/
+[Rr]eleases/
+x64/
+x86/
+[Aa]rm/
+[Aa]rm64/
+bld/
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+
+# Visual Studio Code cache/settings
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
+
+# Rider specific files
+.idea/
+*.sln.iml
+
+# Visual Studio specific files
+.vs/
+# ReSharper is a Visual Studio extension
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Test results
+TestResult/
+TestResults/
+*.VisualState.xml
+
+# Build server files
+_Build*
+publish/
+Publish/
+*.publish.xml
+*.pubxml
+*.publishsettings
+node_modules/
+wwwroot/dist/ # If using frontend build tools
+
+# NuGet Packages
+*.nupkg
+# The packages folder can be ignored because of Package Restore
+**/[Pp]ackages/*
+# except build/, which is used as an MSBuild target.
+!**/[Pp]ackages/build/
+# Uncomment if necessary however generally it will be regenerated when needed
+#!**/[Pp]ackages/repositories.config
+
+# Windows files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Mac files
+.DS_Store
+
+# Secrets
+secrets.json
+appsettings.Development.json # Often contains sensitive dev settings
+
+# Other temporary files
+*.tmp
+*.bak
+*.cache
+
+# If using LocalDB for development
+*.mdf
+*.ldf
+
+# If using EF Core migrations, you might want to keep the Migrations folder,
+# but ignore the model snapshot if it causes merge conflicts frequently
+# (though generally recommended to keep it)
+# !**/Migrations/*ModelSnapshot.cs
