@@ -4,6 +4,13 @@
 
 ![alt text](<Untitled diagram-2025-04-11-175743.png>)
 
+- Sơ đồ minh họa cách các truy vấn chảy qua hệ thống:
+- Máy khách .NET gửi một truy vấn đã nhập (SearchAsync<T>) trong đó T là loại tài liệu của bạn
+- Elasticsearch phân phối truy vấn trên các phân đoạn chỉ mục để xử lý song song
+- Các loại truy vấn khác nhau (Thuật ngữ, Phù hợp, Phạm vi) được xử lý đồng thời
+- Kết quả được tổng hợp và trả về dưới dạng ISearchResponse<T> chứa cả tài liệu và siêu dữ liệu
+  ![alt text](<Editor _ Mermaid Chart-2025-04-12-123114.png>)
+
 ### 1.1. Mục tiêu dự án (Project Goals)
 
 Todo API là một ứng dụng API hiện đại được xây dựng trên nền tảng .NET Core 8.0, sử dụng kiến trúc CQRS (Command Query Responsibility Segregation) để tách biệt hoạt động đọc và ghi dữ liệu. Mục tiêu của dự án là:
