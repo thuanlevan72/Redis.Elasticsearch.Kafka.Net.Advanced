@@ -327,7 +327,7 @@ Tài liệu mô tả cú pháp truy vấn từ **cơ bản đến nâng cao** tr
 ---
 
 
-#7. Tài liệu So sánh Truy vấn LINQ và NEST (Elasticsearch)
+##7. Tài liệu So sánh Truy vấn LINQ và NEST (Elasticsearch)
 
 ## Giới thiệu
 Tài liệu này cung cấp các ví dụ minh họa cho việc chuyển đổi truy vấn từ LINQ sang NEST (Elasticsearch). Dưới đây là bảng so sánh các toán tử cơ bản, ví dụ và cách thực hiện tương đương trong NEST.
