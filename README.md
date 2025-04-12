@@ -285,3 +285,286 @@ Lợi ích:
 - Tách biệt nguồn dữ liệu cho đọc và ghi
 - Khả năng mở rộng tốt hơn
 - Tối ưu hiệu suất cho từng loại thao tác
+## 6. Mô tả về Truy vấn LINQ và Elasticsearch với NEST (.NET) (để có cái nhìn trực quan về truy vấn trong cả 2)
+
+Tài liệu mô tả cú pháp truy vấn từ **cơ bản đến nâng cao** trong:
+
+- LINQ (áp dụng cho danh sách hoặc EF Core)
+- Elasticsearch với thư viện **NEST**
+
+---
+
+## ✅ Truy vấn Cơ bản
+
+| Mục tiêu | LINQ | NEST |
+|----------|------|------|
+| **Lọc theo điều kiện (Where)** | `list.Where(x => x.Price > 100)` | ```Query(q => q.Range(r => r.Field(f => f.Price).GreaterThan(100)))``` |
+| **Lọc nhiều điều kiện** | `list.Where(x => x.Price > 100 && x.Status == "Active")` | ```Query(q => q.Bool(b => b.Must( q.Range(r => r.Field(f => f.Price).GreaterThan(100)), q.Term(t => t.Field(f => f.Status).Value("Active")))))``` |
+| **Sắp xếp tăng dần** | `list.OrderBy(x => x.Name)` | ```Sort(s => s.Ascending(f => f.Name))``` |
+| **Sắp xếp giảm dần** | `list.OrderByDescending(x => x.CreatedDate)` | ```Sort(s => s.Descending(f => f.CreatedDate))``` |
+| **Lấy 1 phần tử đầu tiên** | `list.FirstOrDefault(x => x.Id == id)` | ```Query(q => q.Term(t => t.Field(f => f.Id).Value(id)))``` + `.Size(1)` |
+| **Phân trang (skip/take)** | `.Skip(10).Take(20)` | `.From(10).Size(20)` |
+
+---
+
+## 🔍 Truy vấn Trung bình
+
+| Mục tiêu | LINQ | NEST |
+|----------|------|------|
+| **Chứa chuỗi (contains)** | `list.Where(x => x.Name.Contains("abc"))` | ```Query(q => q.Match(m => m.Field(f => f.Name).Query("abc")))``` |
+| **Tìm trong danh sách (Any)** | `list.Where(x => x.Tags.Any(tag => tag == "Hot"))` | ```Query(q => q.Terms(t => t.Field(f => f.Tags).Terms("Hot")))``` |
+| **Tìm nhiều giá trị (IN)** | `list.Where(x => new[] { "a", "b" }.Contains(x.Category))` | ```Query(q => q.Terms(t => t.Field(f => f.Category).Terms("a", "b")))``` |
+| **Không chứa (NOT)** | `list.Where(x => !x.Tags.Contains("abc"))` | ```Query(q => q.Bool(b => b.MustNot(q.Term(t => t.Field(f => f.Tags).Value("abc")))))``` |
+| **Tìm theo khoảng ngày** | `list.Where(x => x.Date >= from && x.Date <= to)` | ```Query(q => q.DateRange(r => r.Field(f => f.Date).GreaterThanOrEquals(from).LessThanOrEquals(to)))``` |
+
+---
+
+## 🚀 Truy vấn Nâng cao
+
+| Mục tiêu nâng cao | LINQ | NEST |
+|------------------|------|------|
+| **Full-text search** | `list.Where(x => x.Description.Contains("keyword"))` | ```Query(q => q.Match(m => m.Field(f => f.Description).Query("keyword")))``` |
+| **Wildcard / fuzzy** | Không có trực tiếp | ```Query(q => q.Wildcard(w => w.Field(f => f.Name).Value("s*ring")))``` |
+| **Bool query (nhiều điều kiện phức tạp)** | `.Where(x => x.A > 10 && (x.B == "abc" || x.C < 5))` | ```Query(q => q.Bool(b => b.Must( q.Range(r => r.Field(f => f.A).GreaterThan(10)), b.Should( q.Term(t => t.Field(f => f.B).Value("abc")), q.Range(r => r.Field(f => f.C).LessThan(5))) )))``` |
+| **Truy vấn lồng nhau (nested)** | `.Where(x => x.Manufacturer.Country == "VN")` | ```Query(q => q.Nested(n => n.Path(p => p.Manufacturer).Query(nq => nq.Term(t => t.Field("manufacturer.country").Value("VN")))))``` |
+| **Truy vấn theo object con** | `.Where(x => x.Dimensions.Height > 100)` | ```Query(q => q.Range(r => r.Field("dimensions.height").GreaterThan(100)))``` |
+| **Aggregation (GroupBy)** | `list.GroupBy(x => x.Category)` | ```Aggregations(a => a.Terms("by_category", t => t.Field(f => f.Category)))``` |
+| **Đếm số bản ghi** | `list.Count()` | `.Size(0) + Aggregation.Count("total")` |
+
+---
+
+
+## 7. Tài liệu So sánh Truy vấn LINQ và NEST (Elasticsearch)
+
+## Giới thiệu
+Tài liệu này cung cấp các ví dụ minh họa cho việc chuyển đổi truy vấn từ LINQ sang NEST (Elasticsearch). Dưới đây là bảng so sánh các toán tử cơ bản, ví dụ và cách thực hiện tương đương trong NEST.
+
+### Các truy vấn cơ bản
+1. **Select / SelectMany**
+2. **Where** (`==`, `Contains`, `Any`, `All`, `||`, `&&`)
+3. **First / Last**
+4. **OrderBy (ASC, DESC)**
+5. **Paging (Skip, Take)**
+
+---
+
+## 1. `Select` và `SelectMany`
+
+- **LINQ (Select)**: Dùng để ánh xạ dữ liệu từ một tập hợp.
+- **NEST (Elasticsearch)**: Dùng `SourceIncludes` hoặc `Fields`.
+
+### LINQ:
+```csharp
+var result = products.Select(p => new { p.Name, p.Price });
+```
+
+### NEST (Elasticsearch):
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .SourceIncludes(f => f.Name, f => f.Price)
+);
+```
+
+---
+
+## 2. `Where` với `==`, `Contains`, `Any`, `All`, `||`, `&&`
+
+- **LINQ Where**: Dùng để lọc các đối tượng theo các điều kiện.
+- **NEST (Elasticsearch)**: Dùng `Query` trong NEST để lọc các tài liệu theo các điều kiện khác nhau.
+
+### LINQ `==`:
+```csharp
+var result = products.Where(p => p.Category == "Electronics");
+```
+
+### NEST `==`:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Query(q => q
+        .Term(t => t.Category, "Electronics")
+    )
+);
+```
+
+### LINQ `Contains`:
+```csharp
+var result = products.Where(p => p.Name.Contains("Hat"));
+```
+
+### NEST `Contains`:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Query(q => q
+        .Match(m => m
+            .Field(f => f.Name)
+            .Query("Hat")
+        )
+    )
+);
+```
+
+### LINQ `Any`:
+```csharp
+var result = products.Where(p => p.Tags.Any(tag => tag == "New"));
+```
+
+### NEST `Any`:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Query(q => q
+        .Terms(t => t.Tags, new[] { "New" })
+    )
+);
+```
+
+### LINQ `All`:
+```csharp
+var result = products.Where(p => p.Tags.All(tag => tag.StartsWith("A")));
+```
+
+### NEST `All`:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Query(q => q
+        .Bool(b => b
+            .Must(m => m
+                .Terms(t => t.Tags, new[] { "A" })
+            )
+        )
+    )
+);
+```
+
+### LINQ với `||` (OR):
+```csharp
+var result = products.Where(p => p.Category == "Electronics" || p.Category == "Clothing");
+```
+
+### NEST với `||` (OR):
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Query(q => q
+        .Bool(b => b
+            .Should(
+                sh => sh.Term(t => t.Category, "Electronics"),
+                sh => sh.Term(t => t.Category, "Clothing")
+            )
+        )
+    )
+);
+```
+
+### LINQ với `&&` (AND):
+```csharp
+var result = products.Where(p => p.Category == "Electronics" && p.Price > 100);
+```
+
+### NEST với `&&` (AND):
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Query(q => q
+        .Bool(b => b
+            .Must(m => m
+                .Term(t => t.Category, "Electronics"),
+                m => m
+                .Range(r => r.Field(f => f.Price).GreaterThan(100))
+            )
+        )
+    )
+);
+```
+
+---
+
+## 3. `First` và `Last`
+
+- **LINQ First**: Lấy phần tử đầu tiên thỏa mãn điều kiện.
+- **NEST First**: Lấy phần tử đầu tiên trong kết quả.
+
+### LINQ `First`:
+```csharp
+var product = products.First(p => p.Price > 100);
+```
+
+### NEST `First`:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Query(q => q
+        .Range(r => r.Field(f => f.Price).GreaterThan(100))
+    )
+    .Size(1)
+);
+```
+
+### LINQ `Last`:
+```csharp
+var product = products.Last(p => p.Price > 100);
+```
+
+### NEST `Last`:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Query(q => q
+        .Range(r => r.Field(f => f.Price).GreaterThan(100))
+    )
+    .Sort(s => s.Descending(p => p.ManufacturingDate))
+    .Size(1)
+);
+```
+
+---
+
+## 4. `OrderBy` (ASC, DESC)
+
+- **LINQ OrderBy**: Dùng để sắp xếp dữ liệu theo thứ tự tăng dần.
+- **NEST OrderBy**: Dùng `Sort` trong Elasticsearch để sắp xếp.
+
+### LINQ `OrderBy` ASC:
+```csharp
+var result = products.OrderBy(p => p.Price);
+```
+
+### NEST `OrderBy` ASC:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Sort(st => st
+        .Ascending(p => p.Price)
+    )
+);
+```
+
+### LINQ `OrderBy` DESC:
+```csharp
+var result = products.OrderByDescending(p => p.Price);
+```
+
+### NEST `OrderBy` DESC:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .Sort(st => st
+        .Descending(p => p.Price)
+    )
+);
+```
+
+---
+
+## 5. Paging (Skip, Take)
+
+- **LINQ Paging**: Dùng `Skip` và `Take` để phân trang.
+- **NEST Paging**: Dùng `From` và `Size` trong Elasticsearch.
+
+### LINQ Paging:
+```csharp
+var result = products.Skip(10).Take(20);
+```
+
+### NEST Paging:
+```csharp
+var result = client.Search<ProductDocument>(s => s
+    .From(10)
+    .Size(20)
+);
+```
+
+---
