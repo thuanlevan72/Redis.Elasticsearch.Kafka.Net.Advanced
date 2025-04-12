@@ -278,3 +278,70 @@ Lợi ích:
 - Tách biệt nguồn dữ liệu cho đọc và ghi
 - Khả năng mở rộng tốt hơn
 - Tối ưu hiệu suất cho từng loại thao tác
+## 6. Mô tả về Truy vấn LINQ và Elasticsearch với NEST (.NET) (để có cái nhìn trực quan về truy vấn trong cả 2)
+
+Tài liệu mô tả cú pháp truy vấn từ **cơ bản đến nâng cao** trong:
+
+- LINQ (áp dụng cho danh sách hoặc EF Core)
+- Elasticsearch với thư viện **NEST**
+
+---
+
+## ✅ Truy vấn Cơ bản
+
+| Mục tiêu | LINQ | NEST |
+|----------|------|------|
+| **Lọc theo điều kiện (Where)** | `list.Where(x => x.Price > 100)` | ```Query(q => q.Range(r => r.Field(f => f.Price).GreaterThan(100)))``` |
+| **Lọc nhiều điều kiện** | `list.Where(x => x.Price > 100 && x.Status == "Active")` | ```Query(q => q.Bool(b => b.Must( q.Range(r => r.Field(f => f.Price).GreaterThan(100)), q.Term(t => t.Field(f => f.Status).Value("Active")))))``` |
+| **Sắp xếp tăng dần** | `list.OrderBy(x => x.Name)` | ```Sort(s => s.Ascending(f => f.Name))``` |
+| **Sắp xếp giảm dần** | `list.OrderByDescending(x => x.CreatedDate)` | ```Sort(s => s.Descending(f => f.CreatedDate))``` |
+| **Lấy 1 phần tử đầu tiên** | `list.FirstOrDefault(x => x.Id == id)` | ```Query(q => q.Term(t => t.Field(f => f.Id).Value(id)))``` + `.Size(1)` |
+| **Phân trang (skip/take)** | `.Skip(10).Take(20)` | `.From(10).Size(20)` |
+
+---
+
+## 🔍 Truy vấn Trung bình
+
+| Mục tiêu | LINQ | NEST |
+|----------|------|------|
+| **Chứa chuỗi (contains)** | `list.Where(x => x.Name.Contains("abc"))` | ```Query(q => q.Match(m => m.Field(f => f.Name).Query("abc")))``` |
+| **Tìm trong danh sách (Any)** | `list.Where(x => x.Tags.Any(tag => tag == "Hot"))` | ```Query(q => q.Terms(t => t.Field(f => f.Tags).Terms("Hot")))``` |
+| **Tìm nhiều giá trị (IN)** | `list.Where(x => new[] { "a", "b" }.Contains(x.Category))` | ```Query(q => q.Terms(t => t.Field(f => f.Category).Terms("a", "b")))``` |
+| **Không chứa (NOT)** | `list.Where(x => !x.Tags.Contains("abc"))` | ```Query(q => q.Bool(b => b.MustNot(q.Term(t => t.Field(f => f.Tags).Value("abc")))))``` |
+| **Tìm theo khoảng ngày** | `list.Where(x => x.Date >= from && x.Date <= to)` | ```Query(q => q.DateRange(r => r.Field(f => f.Date).GreaterThanOrEquals(from).LessThanOrEquals(to)))``` |
+
+---
+
+## 🚀 Truy vấn Nâng cao
+
+| Mục tiêu nâng cao | LINQ | NEST |
+|------------------|------|------|
+| **Full-text search** | `list.Where(x => x.Description.Contains("keyword"))` | ```Query(q => q.Match(m => m.Field(f => f.Description).Query("keyword")))``` |
+| **Wildcard / fuzzy** | Không có trực tiếp | ```Query(q => q.Wildcard(w => w.Field(f => f.Name).Value("s*ring")))``` |
+| **Bool query (nhiều điều kiện phức tạp)** | `.Where(x => x.A > 10 && (x.B == "abc" || x.C < 5))` | ```Query(q => q.Bool(b => b.Must( q.Range(r => r.Field(f => f.A).GreaterThan(10)), b.Should( q.Term(t => t.Field(f => f.B).Value("abc")), q.Range(r => r.Field(f => f.C).LessThan(5))) )))``` |
+| **Truy vấn lồng nhau (nested)** | `.Where(x => x.Manufacturer.Country == "VN")` | ```Query(q => q.Nested(n => n.Path(p => p.Manufacturer).Query(nq => nq.Term(t => t.Field("manufacturer.country").Value("VN")))))``` |
+| **Truy vấn theo object con** | `.Where(x => x.Dimensions.Height > 100)` | ```Query(q => q.Range(r => r.Field("dimensions.height").GreaterThan(100)))``` |
+| **Aggregation (GroupBy)** | `list.GroupBy(x => x.Category)` | ```Aggregations(a => a.Terms("by_category", t => t.Field(f => f.Category)))``` |
+| **Đếm số bản ghi** | `list.Count()` | `.Size(0) + Aggregation.Count("total")` |
+
+---
+
+## 📋 Ví dụ Truy vấn Elasticsearch hoàn chỉnh bằng NEST
+
+```csharp
+var response = await _elasticClient.SearchAsync<ProductDocument>(s => s
+    .Index("products")
+    .From(0)
+    .Size(10)
+    .Query(q => q.Bool(b => b
+        .Must(
+            q.Match(m => m.Field(f => f.Description).Query("compression")),
+            q.Range(r => r.Field(f => f.Price).GreaterThan(100))
+        )
+        .Filter(
+            q.Term(t => t.Field(f => f.Category).Value("Toys"))
+        )
+    ))
+    .Sort(s => s.Descending(f => f.Price))
+);
+ (Appendix)
