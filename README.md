@@ -37,67 +37,59 @@ Dự án Todo API được thiết kế theo kiến trúc **Clean Architecture**
 
 ---
 
-## 🔷 1. Domain Layer – "Logic nghiệp vụ cốt lõi"
+### 🔷 1. Domain Layer – "Logic nghiệp vụ cốt lõi"
 
-### 🎯 Chức năng chính:
+## 🎯 Chức năng chính:
 - Là nơi định nghĩa **logic nghiệp vụ** quan trọng nhất của hệ thống.
 - Không phụ thuộc vào bất kỳ tầng nào khác.
 - Đóng vai trò như trái tim của ứng dụng.
 
-### 📦 Thành phần bao gồm:
+## 📦 Thành phần bao gồm:
 - **Entities**: Các đối tượng nghiệp vụ (VD: `Todo`, `User`)
 - **Interfaces**: Các hợp đồng (contract) như `ITodoRepository`
 - **Exception**: Các lỗi nghiệp vụ
 
-### 📁 Trong dự án:
+## 📁 Trong dự án:
 - Thư mục: `TodoApp.Domain`
 - Chứa các định nghĩa như: `Todo`, `Priority`, `ITodoRepository`
 
 ---
 
-## 🔶 2. Application Layer – "Điều phối nghiệp vụ"
+### 🔶 2. Application Layer – "Điều phối nghiệp vụ"
 
-### 🎯 Chức năng chính:
+## 🎯 Chức năng chính:
 - Điều phối và thực hiện các **use case** (Tạo Todo, Cập nhật, Xóa...).
 - Chỉ phụ thuộc vào tầng Domain.
 - Không biết gì về cơ sở dữ liệu, giao tiếp mạng hay công nghệ lưu trữ.
 
-### 📦 Thành phần bao gồm:
+## 📦 Thành phần bao gồm:
 - **Commands / Queries**: Đại diện cho các hành động của người dùng (CQRS)
 - **Handlers**: Thực thi logic theo từng command hoặc query
 - **DTOs / Validators**
 
-### 🛠 Công nghệ hỗ trợ:
+## 🛠 Công nghệ hỗ trợ:
 - **MediatR**: Đóng vai trò trung gian để xử lý lệnh và truy vấn
 
-### 📁 Trong dự án:
+## 📁 Trong dự án:
 - Thư mục: `TodoApp.Application`
 - Ví dụ: `CreateTodoCommand`, `GetTodoListQuery`, `TodoValidator`
 
 ---
 
-## 🟩 3. Infrastructure Layer – "Kết nối và lưu trữ"
+### 🟩 3. Infrastructure Layer – "Kết nối và lưu trữ"
 
-### 🎯 Chức năng chính:
+## 🎯 Chức năng chính:
 - Thực thi các interface được định nghĩa ở Domain hoặc Application.
 - Kết nối với các hệ thống bên ngoài: cơ sở dữ liệu, Kafka, Elasticsearch, email...
 
-### 📦 Thành phần bao gồm:
+## 📦 Thành phần bao gồm:
 - **Repositories**: Lưu trữ và truy xuất dữ liệu (PostgreSQL, Elasticsearch)
 - **Event Publishers / Consumers**: Gửi và nhận message từ Kafka
 - **Service Implementations**: Cấu hình Serilog, lưu log, gửi mail...
 
-### 📁 Trong dự án:
+## 📁 Trong dự án:
 - Thư mục: `TodoApp.Infrastructure`
 - Ví dụ: `PostgreTodoRepository`, `KafkaEventPublisher`, `ElasticTodoReader`
-
----
-
-## 🔁 Mối quan hệ giữa các tầng:
-
-```text
-Infrastructure -> Application -> Domain
-               <- Interface hướng ngược lên
 
 ### 2.1. Sơ đồ tổng quan
 
