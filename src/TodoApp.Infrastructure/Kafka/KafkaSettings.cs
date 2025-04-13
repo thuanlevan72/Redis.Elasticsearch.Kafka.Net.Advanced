@@ -25,8 +25,16 @@ public class KafkaSettings
     /// </summary>
     public string ConsumerGroupId { get; set; } = "todo-consumer-group";
     
+    // <summary>
+    /// ID nhóm consumer (sử dụng bên trong KafkaConsumer)
+    /// </summary>
+    public string CDCGroupId { get; set; } = "todo-cdc-group";
+    
     /// <summary>
     /// Tên topic cho sự kiện Todo
     /// </summary>
     public string TodoEventsTopic { get; set; } = "todo-events";
+    
+    
+    public string CDCEventsTopic = "todoapp-cdc.public.Todos";
 }

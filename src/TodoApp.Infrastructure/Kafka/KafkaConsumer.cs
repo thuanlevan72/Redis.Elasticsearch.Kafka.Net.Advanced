@@ -44,17 +44,132 @@ public class KafkaConsumer : BackgroundService
     /// Thực thi consumer trong nền
     /// </summary>
     /// <param name="stoppingToken">Token hủy</param>
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         // Log thông tin bắt đầu
         _logger.LogInformation("Kafka Consumer đang khởi động...");
+        //
+        // // Khởi động consumer trong một task riêng không chặn việc khởi động ứng dụng
+        // _ = Task.Run(async () => await StartKafkaConsumerAsync(stoppingToken), stoppingToken);
+        // _ = Task.Run(async () => await StartKafkaConsumerCDCAsync(stoppingToken), stoppingToken);
+        // Khởi chạy CẢ HAI consumers trong các Task riêng biệt
+        var domainConsumerTask = Task.Run(() => 
+            StartKafkaConsumerAsync(stoppingToken), stoppingToken);
+    
+        var cdcConsumerTask = Task.Run(() => 
+            StartKafkaConsumerCDCAsync(stoppingToken), stoppingToken);
 
-        // Khởi động consumer trong một task riêng không chặn việc khởi động ứng dụng
-        _ = Task.Run(async () => await StartKafkaConsumerAsync(stoppingToken), stoppingToken);
-
-        // Trả về task đã hoàn thành để không chặn quá trình khởi động ứng dụng
-        return Task.CompletedTask;
+        // Đợi cả 2 task hoàn thành (sẽ chạy vô tận cho đến khi ứng dụng dừng)
+        await Task.WhenAll(domainConsumerTask, cdcConsumerTask);
     }
+
+    private async Task StartKafkaConsumerCDCAsync(CancellationToken stoppingToken)
+    {
+        try
+        {
+            // Đợi một chút để ứng dụng có thể khởi động trước
+            await Task.Delay(500, stoppingToken);
+
+            // Cấu hình consumer
+            var config = new ConsumerConfig
+            {
+                BootstrapServers = _settings.BootstrapServers,
+                GroupId = _settings.CDCGroupId,
+                AutoOffsetReset = AutoOffsetReset.Earliest,
+                EnableAutoCommit = false,
+                // Thêm cấu hình để xử lý tốt hơn với lỗi kết nối
+                SocketTimeoutMs = 3000,
+                ConnectionsMaxIdleMs = 5000,
+                AllowAutoCreateTopics = true
+            };
+
+            try
+            {
+                // Tạo consumer
+                using var consumer = new ConsumerBuilder<string, string>(config)
+                    .SetErrorHandler((_, e) => 
+                    {
+                        if (e.IsFatal)
+                        {
+                            _logger.LogError($"Lỗi nghiêm trọng từ Kafka consumer: {e.Reason}");
+                        }
+                        else
+                        {
+                            _logger.LogWarning($"Lỗi không nghiêm trọng từ Kafka consumer: {e.Reason}");
+                        }
+                    })
+                    .Build();
+                
+                try
+                {
+                    // Đăng ký nhận thông tin từ topic
+                    consumer.Subscribe(_settings.CDCEventsTopic);
+                    
+                    // Log thông tin đã đăng ký
+                    _logger.LogInformation($"Đã đăng ký nhận thông tin từ topic: {_settings.CDCEventsTopic}");
+                    
+                    // Vòng lặp xử lý message
+                    while (!stoppingToken.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            // Đọc message từ Kafka với timeout
+                            var consumeResult = consumer.Consume(TimeSpan.FromMilliseconds(100));
+                            
+                            // Nếu có message
+                            if (consumeResult != null)
+                            {
+                                // Log thông tin nhận được message
+                                _logger.LogInformation($"Đã nhận message từ partition {consumeResult.Partition.Value} với offset {consumeResult.Offset.Value}");
+                                
+                                // Commit offset
+                                consumer.Commit(consumeResult);
+                            }
+                        }
+                        catch (ConsumeException ex)
+                        {
+                            // Log lỗi khi consume
+                            _logger.LogError($"Lỗi khi nhận message từ Kafka: {ex.Error.Reason}");
+                        }
+                        catch (Exception ex)
+                        {
+                            // Log lỗi không mong đợi khi xử lý message
+                            _logger.LogError(ex, "Lỗi không mong đợi khi xử lý message từ Kafka.");
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // Log lỗi nhưng không dừng ứng dụng
+                    _logger.LogWarning(ex, $"Không thể đăng ký nhận thông tin từ topic '{_settings.TodoEventsTopic}'. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log lỗi khi tạo consumer
+                _logger.LogWarning(ex, "Không thể tạo Kafka consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            // Bình thường khi ứng dụng dừng
+            _logger.LogInformation("Kafka Consumer đã dừng theo yêu cầu.");
+        }
+        catch (Exception ex)
+        {
+            // Log lỗi không mong đợi
+            _logger.LogWarning(ex, "Lỗi không mong đợi trong Kafka Consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+        }
+
+        // Đảm bảo ExecuteAsync không kết thúc khi có lỗi, để ứng dụng tiếp tục chạy
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+            _logger.LogDebug("Kafka Consumer service đang chạy...");
+        }
+    }
+    
+    
 
     /// <summary>
     /// Khởi động và chạy Kafka consumer
