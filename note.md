@@ -220,3 +220,29 @@ Sau các bước này, Debezium sẽ hoạt động bình thường! 🎉 Nếu 
 
 }
 }
+
+{
+"name": "todoapp-connector-all-tables",
+"config": {
+"connector.class": "io.debezium.connector.postgresql.PostgresConnector",
+"database.hostname": "postgres",
+"database.port": "5432",
+"database.user": "postgres",
+"database.password": "postgres",
+"database.dbname": "tododb",
+
+    "database.server.name": "todoapp-db",       // Tên logic → tạo prefix topic
+    "plugin.name": "pgoutput",
+
+    "slot.name": "debezium_slot_all",
+    "publication.name": "debezium_pub_all",
+
+    "topic.prefix": "todoapp-cdc",              // Debezium sẽ tạo topic dạng: todoapp-cdc.public.<table>
+
+    "transforms": "unwrap",
+    "transforms.unwrap.type": "io.debezium.transforms.ExtractNewRecordState",
+    "transforms.unwrap.drop.tombstones": "false",
+    "transforms.unwrap.delete.handling.mode": "rewrite"
+
+}
+}

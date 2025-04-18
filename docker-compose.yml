@@ -11,7 +11,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=tododb
-      - POSTGRES_INITDB_ARGS=--wal-level=logical # Quan trọng! khi cấu hình và connect đến 
+      - POSTGRES_INITDB_ARGS=--wal-level=logical # Quan trọng! khi cấu hình và connect đến
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -73,6 +73,21 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+    networks:
+      - todoapp-network
+      
+  #logstash
+  logstash:
+    image: docker.elastic.co/logstash/logstash:7.17.0
+    container_name: todoapp-logstash
+    volumes:
+      - ./logstash/pipeline:/usr/share/logstash/pipeline
+    ports:
+      - "5044:5044" # nếu sau này dùng Beats
+    depends_on:
+      - elasticsearch
+    environment:
+      - LS_JAVA_OPTS=-Xms512m -Xmx512m
     networks:
       - todoapp-network
 
@@ -142,57 +157,57 @@ services:
     networks:
       - todoapp-network
 
-  # Todo Write API
-  todoapp-write-api:
-    build:
-      context: .
-      dockerfile: src/TodoApp.WriteApi/Dockerfile
-    container_name: todoapp-write-api
-    depends_on:
-      - postgres
-      - kafka
-      - elasticsearch
-    ports:
-      - "8000:8000"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:8000
-      - PostgreSQL__Host=postgres
-      - PostgreSQL__Port=5432
-      - PostgreSQL__Database=tododb
-      - PostgreSQL__Username=postgres
-      - PostgreSQL__Password=postgres
-      - KafkaSettings__BootstrapServers=kafka:29092
-      - KafkaSettings__TodoEventsTopic=todo-events
-      - ElasticsearchSettings__Url=http://elasticsearch:9200
-    networks:
-      - todoapp-network
+  # # Todo Write API
+  # todoapp-write-api:
+  #   build:
+  #     context: .
+  #     dockerfile: src/TodoApp.WriteApi/Dockerfile
+  #   container_name: todoapp-write-api
+  #   depends_on:
+  #     - postgres
+  #     - kafka
+  #     - elasticsearch
+  #   ports:
+  #     - "8000:8000"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ASPNETCORE_URLS=http://+:8000
+  #     - PostgreSQL__Host=postgres
+  #     - PostgreSQL__Port=5432
+  #     - PostgreSQL__Database=tododb
+  #     - PostgreSQL__Username=postgres
+  #     - PostgreSQL__Password=postgres
+  #     - KafkaSettings__BootstrapServers=kafka:29092
+  #     - KafkaSettings__TodoEventsTopic=todo-events
+  #     - ElasticsearchSettings__Url=http://elasticsearch:9200
+  #   networks:
+  #     - todoapp-network
 
-  # Todo Read API
-  todoapp-read-api:
-    build:
-      context: .
-      dockerfile: src/TodoApp.ReadApi/Dockerfile
-    container_name: todoapp-read-api
-    depends_on:
-      - postgres
-      - kafka
-      - elasticsearch
-    ports:
-      - "5000:5000"
-    environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ASPNETCORE_URLS=http://+:5000
-      - PostgreSQL__Host=postgres
-      - PostgreSQL__Port=5432
-      - PostgreSQL__Database=tododb
-      - PostgreSQL__Username=postgres
-      - PostgreSQL__Password=postgres
-      - KafkaSettings__BootstrapServers=kafka:29092
-      - KafkaSettings__TodoEventsTopic=todo-events
-      - ElasticsearchSettings__Url=http://elasticsearch:9200
-    networks:
-      - todoapp-network
+  # # Todo Read API
+  # todoapp-read-api:
+  #   build:
+  #     context: .
+  #     dockerfile: src/TodoApp.ReadApi/Dockerfile
+  #   container_name: todoapp-read-api
+  #   depends_on:
+  #     - postgres
+  #     - kafka
+  #     - elasticsearch
+  #   ports:
+  #     - "5000:5000"
+  #   environment:
+  #     - ASPNETCORE_ENVIRONMENT=Development
+  #     - ASPNETCORE_URLS=http://+:5000
+  #     - PostgreSQL__Host=postgres
+  #     - PostgreSQL__Port=5432
+  #     - PostgreSQL__Database=tododb
+  #     - PostgreSQL__Username=postgres
+  #     - PostgreSQL__Password=postgres
+  #     - KafkaSettings__BootstrapServers=kafka:29092
+  #     - KafkaSettings__TodoEventsTopic=todo-events
+  #     - ElasticsearchSettings__Url=http://elasticsearch:9200
+  #   networks:
+  #     - todoapp-network
 
 volumes:
   postgres-data:
