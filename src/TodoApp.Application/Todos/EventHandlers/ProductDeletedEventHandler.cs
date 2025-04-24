@@ -10,7 +10,7 @@ namespace TodoApp.Application.Todos.EventHandlers;
 /// <summary>
 /// Handler xử lý sự kiện khi Todo được tạo
 /// </summary>
-public class ProductCreatedEventHandler : INotificationHandler<ProductCreatedNotification>
+public class ProductDeletedEventHandler : INotificationHandler<ProductDeletedNotification>
 {
     // private readonly IKafkaProducer _kafkaProducer;
     private readonly IElasticsearchService _elasticsearchService;
@@ -20,7 +20,7 @@ public class ProductCreatedEventHandler : INotificationHandler<ProductCreatedNot
     /// Khởi tạo handler với repository tìm kiếm
     /// </summary>
     /// <param name="todoSearchRepository">Repository tìm kiếm Todo</param>
-    public ProductCreatedEventHandler(IElasticsearchService elasticsearchService)
+    public ProductDeletedEventHandler(IElasticsearchService elasticsearchService)
     {
         // Lưu trữ repository tìm kiếm
         _elasticsearchService = elasticsearchService;
@@ -32,14 +32,14 @@ public class ProductCreatedEventHandler : INotificationHandler<ProductCreatedNot
     /// </summary>
     /// <param name="notification">Thông báo sự kiện</param>
     /// <param name="cancellationToken">Token hủy</param>
-    public async Task Handle(ProductCreatedNotification notification, CancellationToken cancellationToken)
+    public async Task Handle(ProductDeletedNotification notification, CancellationToken cancellationToken)
     {
         // Log thông tin về Todo đã được tạo
-        Console.WriteLine($"Đang xử lý sự kiện Todo đã tạo: {notification.ProductCreatedEvent.Id}");
+        Console.WriteLine($"Đang xử lý xóa products: {notification.IGuid}");
 
         try
         {
-            await _elasticsearchService.IndexDocumentAsync<ProductDocument>(_index, notification.ProductCreatedEvent, notification.ProductCreatedEvent.Id.ToString());
+            await _elasticsearchService.DeleteDocumentAsync(_index,  notification.IGuid.ToString());
         }
         catch (Exception ex)
         {
@@ -53,21 +53,21 @@ public class ProductCreatedEventHandler : INotificationHandler<ProductCreatedNot
 /// <summary>
 /// Thông báo sự kiện khi Todo được tạo
 /// </summary>
-public class ProductCreatedNotification : INotification
+public class ProductDeletedNotification : INotification
 {
     /// <summary>
-    /// Sự kiện Todo đã tạo
+    /// Sự kiện ProductId phải xóa
     /// </summary>
-    public ProductDocument ProductCreatedEvent { get; }
+    public Guid IGuid { get; }
 
     /// <summary>
     /// Khởi tạo thông báo với sự kiện
     /// </summary>
     /// <param name="todoCreatedEvent">Sự kiện Todo đã tạo</param>
-    public ProductCreatedNotification(ProductDocument productCreatedEvent)
+    public ProductDeletedNotification(Guid productId)
     {
         // Lưu trữ sự kiện
-        ProductCreatedEvent = productCreatedEvent;
+        IGuid = productId;
     }
 }
 

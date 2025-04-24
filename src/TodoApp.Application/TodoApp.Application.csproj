@@ -18,8 +18,4 @@
     <ProjectReference Include="..\TodoApp.Domain\TodoApp.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Todos\Queries\ProductQueries\" />
-  </ItemGroup>
-
 </Project>

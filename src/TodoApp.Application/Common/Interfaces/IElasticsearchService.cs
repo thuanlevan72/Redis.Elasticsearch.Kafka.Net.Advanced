@@ -29,6 +29,14 @@ public interface IElasticsearchService
     /// <param name="id">ID của tài liệu</param>
     /// <returns>True nếu lưu trữ thành công, ngược lại False</returns>
     Task<bool> IndexDocumentAsync<T>(string indexName, T document, string id) where T : class;
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="indexName"></param>
+    /// <param name="documents"></param>
+    /// <typeparam name="T"></typeparam>
+    /// <returns></returns>
+    Task<bool> IndexAllDocumentAsync<T>(string indexName, List<T> documents) where T : class;
 
     /// <summary>
     /// Lấy một tài liệu từ chỉ mục theo ID

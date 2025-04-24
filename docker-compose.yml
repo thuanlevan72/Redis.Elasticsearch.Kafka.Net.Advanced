@@ -11,7 +11,7 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_DB=tododb
-      - POSTGRES_INITDB_ARGS=--wal-level=logical # Quan trọng! khi cấu hình và connect đến
+      - POSTGRES_INITDB_ARGS=--wal-level=logical
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:
@@ -51,19 +51,22 @@ services:
     networks:
       - todoapp-network
 
-  # Elasticsearch
-  elasticsearch:
+  # Elasticsearch Node 1
+  elasticsearch-1:
     image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
-    container_name: todoapp-elasticsearch
+    container_name: todoapp-elasticsearch-1
     ports:
       - "9200:9200"
       - "9300:9300"
     environment:
-      - discovery.type=single-node
+      - cluster.name=todoapp-cluster
+      - node.name=elasticsearch-1
+      - discovery.seed_hosts=elasticsearch-1,elasticsearch-2,elasticsearch-3
+      - cluster.initial_master_nodes=elasticsearch-1,elasticsearch-2,elasticsearch-3
       - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
       - xpack.security.enabled=false
     volumes:
-      - elasticsearch-data:/usr/share/elasticsearch/data
+      - elasticsearch-data-1:/usr/share/elasticsearch/data
     healthcheck:
       test:
         [
@@ -75,17 +78,74 @@ services:
       retries: 3
     networks:
       - todoapp-network
-      
-  #logstash
+
+  # Elasticsearch Node 2
+  elasticsearch-2:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: todoapp-elasticsearch-2
+    ports:
+      - "9201:9200"
+      - "9301:9300"
+    environment:
+      - cluster.name=todoapp-cluster
+      - node.name=elasticsearch-2
+      - discovery.seed_hosts=elasticsearch-1,elasticsearch-2,elasticsearch-3
+      - cluster.initial_master_nodes=elasticsearch-1,elasticsearch-2,elasticsearch-3
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch-data-2:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl --silent --fail http://localhost:9200/_cluster/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - todoapp-network
+
+  # Elasticsearch Node 3
+  elasticsearch-3:
+    image: docker.elastic.co/elasticsearch/elasticsearch:7.17.0
+    container_name: todoapp-elasticsearch-3
+    ports:
+      - "9202:9200"
+      - "9302:9300"
+    environment:
+      - cluster.name=todoapp-cluster
+      - node.name=elasticsearch-3
+      - discovery.seed_hosts=elasticsearch-1,elasticsearch-2,elasticsearch-3
+      - cluster.initial_master_nodes=elasticsearch-1,elasticsearch-2,elasticsearch-3
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+      - xpack.security.enabled=false
+    volumes:
+      - elasticsearch-data-3:/usr/share/elasticsearch/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl --silent --fail http://localhost:9200/_cluster/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - todoapp-network
+
+  # Logstash
   logstash:
     image: docker.elastic.co/logstash/logstash:7.17.0
     container_name: todoapp-logstash
     volumes:
       - ./logstash/pipeline:/usr/share/logstash/pipeline
+      - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
     ports:
-      - "5044:5044" # nếu sau này dùng Beats
+      - "5044:5044"
     depends_on:
-      - elasticsearch
+      - elasticsearch-1
     environment:
       - LS_JAVA_OPTS=-Xms512m -Xmx512m
     networks:
@@ -148,16 +208,24 @@ services:
     image: docker.elastic.co/kibana/kibana:7.17.0
     container_name: todoapp-kibana
     depends_on:
-      - elasticsearch
+      - elasticsearch-1
     ports:
       - "5601:5601"
     environment:
-      - ELASTICSEARCH_URL=http://elasticsearch:9200
-      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_HOSTS=http://elasticsearch-1:9200
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl --silent --fail http://localhost:5601/api/status || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
     networks:
       - todoapp-network
 
-  # # Todo Write API
+  # Todo Write API (commented out)
   # todoapp-write-api:
   #   build:
   #     context: .
@@ -166,7 +234,7 @@ services:
   #   depends_on:
   #     - postgres
   #     - kafka
-  #     - elasticsearch
+  #     - elasticsearch-1
   #   ports:
   #     - "8000:8000"
   #   environment:
@@ -179,11 +247,11 @@ services:
   #     - PostgreSQL__Password=postgres
   #     - KafkaSettings__BootstrapServers=kafka:29092
   #     - KafkaSettings__TodoEventsTopic=todo-events
-  #     - ElasticsearchSettings__Url=http://elasticsearch:9200
+  #     - ElasticsearchSettings__Url=http://elasticsearch-1:9200
   #   networks:
   #     - todoapp-network
 
-  # # Todo Read API
+  # Todo Read API (commented out)
   # todoapp-read-api:
   #   build:
   #     context: .
@@ -192,7 +260,7 @@ services:
   #   depends_on:
   #     - postgres
   #     - kafka
-  #     - elasticsearch
+  #     - elasticsearch-1
   #   ports:
   #     - "5000:5000"
   #   environment:
@@ -205,13 +273,15 @@ services:
   #     - PostgreSQL__Password=postgres
   #     - KafkaSettings__BootstrapServers=kafka:29092
   #     - KafkaSettings__TodoEventsTopic=todo-events
-  #     - ElasticsearchSettings__Url=http://elasticsearch:9200
+  #     - ElasticsearchSettings__Url=http://elasticsearch-1:9200
   #   networks:
   #     - todoapp-network
 
 volumes:
   postgres-data:
-  elasticsearch-data:
+  elasticsearch-data-1:
+  elasticsearch-data-2:
+  elasticsearch-data-3:
 
 networks:
   todoapp-network:

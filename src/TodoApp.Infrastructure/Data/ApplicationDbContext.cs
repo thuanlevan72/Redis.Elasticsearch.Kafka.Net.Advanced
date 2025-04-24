@@ -13,6 +13,8 @@ public class ApplicationDbContext : DbContext
     /// DbSet cho entity Todo
     /// </summary>
     public DbSet<Todo> Todos { get; set; } = null!;
+    
+    public DbSet<Product> Products { get; set; } = null!;
 
     /// <summary>
     /// Khởi tạo context với options được cung cấp
@@ -21,6 +23,7 @@ public class ApplicationDbContext : DbContext
     public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
         : base(options)
     {
+        AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
     }
 
     /// <summary>
@@ -33,6 +36,6 @@ public class ApplicationDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
         // Áp dụng cấu hình cho entity Todo
-        modelBuilder.ApplyConfiguration(new TodoConfiguration());
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ApplicationDbContext).Assembly);
     }
 }

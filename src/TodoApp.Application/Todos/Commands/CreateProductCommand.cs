@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using System.Text.Json.Serialization;
 using Bogus;
 using MediatR;
 using Microsoft.Extensions.Logging;
@@ -23,6 +25,61 @@ public class CreateProductCommand : IRequest<Result<List<Guid>>>
     public int QuantityAdd { get; set; }
 }
 
+
+public class ProductDocumentEvent
+{
+    [JsonPropertyName("id")]
+    public string Id { get; set; }
+
+    [JsonPropertyName("name")]
+    public string Name { get; set; }
+
+    [JsonPropertyName("description")]
+    public string Description { get; set; }
+
+    [JsonPropertyName("price")]
+    public double Price { get; set; }
+
+    [JsonPropertyName("category")]
+    public string Category { get; set; }
+
+    [JsonPropertyName("material")]
+    public string Material { get; set; }
+
+    [JsonPropertyName("manufacturing_date")]
+    public long ManufacturingDate { get; set; }
+
+    [JsonPropertyName("status")]
+    public string Status { get; set; }
+
+    [JsonPropertyName("dimensions_length")]
+    public double DimensionsLength { get; set; }
+
+    [JsonPropertyName("dimensions_width")]
+    public double DimensionsWidth { get; set; }
+
+    [JsonPropertyName("dimensions_height")]
+    public double DimensionsHeight { get; set; }
+
+    [JsonPropertyName("tags")]
+    public List<string> Tags { get; set; }
+
+    [JsonPropertyName("manufacturer_name")]
+    public string ManufacturerName { get; set; }
+
+    [JsonPropertyName("manufacturer_country")]
+    public string ManufacturerCountry { get; set; }
+
+    [JsonPropertyName("created_at")]
+    public long CreatedAt { get; set; }
+
+    [JsonPropertyName("updated_at")]
+    public long? UpdatedAt { get; set; }
+
+    [JsonPropertyName("__deleted")]
+    public string Deleted { get; set; }
+}
+
 /// <summary>
 /// Handler xử lý command tạo Todo mới
 /// </summary>
@@ -41,7 +98,7 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
     public CreateProductCommandHandler(IElasticsearchService elasticsearchService)
     {
         _elasticsearchService = elasticsearchService;
-        _index = "products";
+        _index = "products_v2";
     }
 
     /// <summary>
@@ -94,17 +151,41 @@ public class CreateProductCommandHandler : IRequestHandler<CreateProductCommand,
                 .RuleFor(p => p.Status, f => f.PickRandom(new[] { "Available", "OutOfStock", "Discontinued" }))
                 .RuleFor(p => p.Tags, f => f.Random.WordsArray(3, 6).ToList())
                 .RuleFor(p => p.Dimensions, f => dimensionsFaker.Generate())
-                .RuleFor(p => p.Manufacturer, f => manufacturerFaker.Generate());
+                .RuleFor(p => p.Manufacturer, f => manufacturerFaker.Generate())
+                .RuleFor(p => p.CreatedAt, f => DateTime.Now)
+                .RuleFor(p => p.UpdatedAt, f => null);
 
             // Tạo 300 sản phẩm
             var products = productFaker.Generate(request.QuantityAdd);
-            List<Guid> productIds = new List<Guid>();
-            foreach (var item in products)
-            {
-               var res =  await _elasticsearchService.IndexDocumentAsync<ProductDocument>(_index, item, item.Id.ToString());
-               productIds.Add(Guid.Parse(item.Id));
-            }
-            return Result<List<Guid>>.Success(productIds);
+            var batchCount = 100; // Chia thành 20 tiến trình
+            var batchSize = (int)Math.Ceiling((double)products.Count / batchCount);
+            var tasks = new List<Task>();
+            var productIds = new ConcurrentBag<Guid>();
+            var index = 0;
+            var lockObj = new object();
+            await _elasticsearchService.IndexAllDocumentAsync<ProductDocument>(_index, products);
+            // for (int i = 0; i < batchCount; i++)
+            // {
+            //     var batch = products.Skip(i * batchSize).Take(batchSize).ToList();
+            //
+            //     tasks.Add(Task.Run(async () =>
+            //     {
+            //         foreach (var item in batch)
+            //         {
+            //             var res = await _elasticsearchService.IndexDocumentAsync<ProductDocument>(_index, item, item.Id.ToString());
+            //
+            //             productIds.Add(Guid.Parse(item.Id));
+            //
+            //             lock (lockObj)
+            //             {
+            //                 Console.WriteLine(index++);
+            //             }
+            //         }
+            //     }));
+            // }
+            //
+            // await Task.WhenAll(tasks);
+            return Result<List<Guid>>.Success(null);
         }
         catch (Exception ex)
         {

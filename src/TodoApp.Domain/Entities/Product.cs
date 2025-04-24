@@ -1,8 +1,11 @@
-﻿namespace TodoApp.Domain.Entities;
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace TodoApp.Domain.Entities;
 // Lớp Product đại diện cho một sản phẩm nha khoa trong hệ thống
 public class Product
 {
     // Định danh duy nhất của sản phẩm, sử dụng Guid để đảm bảo tính độc nhất
+    [Column("id")]
     public Guid Id { get; set; }
 
     // Tên sản phẩm, ví dụ: "Monolithic Denture", "Surgical Guide"
@@ -12,7 +15,7 @@ public class Product
     public string Description { get; set; } = string.Empty;
 
     // Giá sản phẩm (đơn vị tiền tệ, ví dụ: USD), hỗ trợ truy vấn khoảng
-    public decimal Price { get; set; }
+    public double Price { get; set; }
 
     // Loại sản phẩm, ví dụ: "Denture", "Crown", "Guide", dùng để phân loại
     public string Category { get; set; } = string.Empty;
@@ -35,6 +38,8 @@ public class Product
     // Thông tin nhà sản xuất, lưu dưới dạng đối tượng lồng
     public ManufacturerInfo Manufacturer { get; set; } = new ManufacturerInfo();
     
+    public DateTime CreatedAt { get; set; }
+    public DateTime? UpdatedAt { get; set; }
     
 }
 

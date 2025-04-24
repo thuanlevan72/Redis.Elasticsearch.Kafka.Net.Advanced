@@ -1,4 +1,6 @@
 ﻿/// Lớp ProductDocument đại diện cho một tài liệu sản phẩm trong Elasticsearch
+using System.Text.Json;
+using System.Text.Json.Serialization;
 namespace TodoApp.Application.Common.Models;
 public class ProductDocument
 {
@@ -34,6 +36,16 @@ public class ProductDocument
 
     // Thông tin nhà sản xuất, ánh xạ là object để truy vấn các trường con
     public ManufacturerInfo Manufacturer { get; set; } = new ManufacturerInfo();
+    
+    /// <summary>
+    /// Ngày tạo
+    /// </summary>
+    public DateTime CreatedAt { get; set; }
+    
+    /// <summary>
+    /// Ngày cập nhật
+    /// </summary>
+    public DateTime? UpdatedAt { get; set; }
 }
 
 // Lớp Dimensions lưu kích thước sản phẩm

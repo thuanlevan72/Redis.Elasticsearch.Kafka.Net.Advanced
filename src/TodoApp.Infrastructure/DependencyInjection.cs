@@ -1,11 +1,14 @@
+using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using TodoApp.Domain.Interfaces;
 using TodoApp.Application.Common.Interfaces;
 using TodoApp.Infrastructure.Data;
 using TodoApp.Infrastructure.Elasticsearch;
 using TodoApp.Infrastructure.Kafka;
+using TodoApp.Infrastructure.Logging;
 using TodoApp.Infrastructure.Repositories;
 
 namespace TodoApp.Infrastructure;
@@ -21,8 +24,18 @@ public static class DependencyInjection
     /// <param name="services">Container dịch vụ</param>
     /// <param name="configuration">Cấu hình ứng dụng</param>
     /// <returns>Container dịch vụ đã được cấu hình</returns>
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfrastructure(this WebApplicationBuilder builder, IConfiguration configuration)
     {
+        // builder.Logging.ClearProviders();
+        IServiceCollection services = builder.Services;
+        
+        /// đăng ký log trước khi khởi tạo ứng dụng
+        var loggerProvider = new MiddlewareLoggerProvider();
+        builder.Logging.AddProvider(loggerProvider);
+        builder.Services.AddSingleton(loggerProvider);
+        
+        services.AddSingleton(loggerProvider);
+        
         // Đăng ký ApplicationDbContext với PostgreSQL
         services.AddDbContext<ApplicationDbContext>(options =>
         {

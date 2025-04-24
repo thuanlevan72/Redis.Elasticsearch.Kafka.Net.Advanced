@@ -1,6 +1,10 @@
 using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Json;
+using Serilog.Sinks.Elasticsearch;
 using TodoApp.Application;
 using TodoApp.Infrastructure;
+using TodoApp.Infrastructure.Logging;
 
 // Khởi tạo cấu hình logging
 Log.Logger = new LoggerConfiguration()
@@ -11,18 +15,25 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
-    // Log thông tin khởi động ứng dụng
-    Log.Information("Đang khởi động Read API");
-
     // Khởi tạo builder
     var builder = WebApplication.CreateBuilder(args);
-
+    // Log thông tin khởi động ứng dụng
+    Log.Information("Đang khởi động Read API");
+    
     // Cấu hình logging
     builder.Host.UseSerilog((context, services, configuration) => configuration
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .WriteTo.Console());
+        .WriteTo.Console()
+        .WriteTo.File("logs/Read-log.txt", LogEventLevel.Error)
+        .WriteTo.File(new JsonFormatter(),"logs/Read-log.json", LogEventLevel.Error)
+        .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri("http://localhost:9200"))
+        {
+            AutoRegisterTemplate = true,
+            IndexFormat = "log-app-read",
+            MinimumLogEventLevel = LogEventLevel.Error
+        }));
 
     // Thêm services cho controllers
     builder.Services.AddControllers();
@@ -52,7 +63,7 @@ try
 
     // Thêm các services từ các tầng khác
     builder.Services.AddApplication();
-    builder.Services.AddInfrastructure(builder.Configuration);
+    builder.AddInfrastructure(builder.Configuration);
 
     // Thêm CORS
     builder.Services.AddCors(options =>
@@ -71,7 +82,6 @@ try
     // Luôn sử dụng Swagger để dễ dàng test API
     app.UseSwagger();
     app.UseSwaggerUI();
-
     // Sử dụng CORS
     app.UseCors("AllowAllOrigins");
 
@@ -82,7 +92,10 @@ try
     app.UseRouting();
     app.UseAuthorization();
     app.MapControllers();
-
+    
+    // sử dụng
+    app.UseMiddleware<LoggingMiddleware>();
+    
     // Chạy ứng dụng
     app.Run();
 }

@@ -1,0 +1,3 @@
+xpack.monitoring.enabled: false
+# xpack.monitoring.elasticsearch.hosts: ["http://todoapp-elasticsearch-1:9200"]
+#

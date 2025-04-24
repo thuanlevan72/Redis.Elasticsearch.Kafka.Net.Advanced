@@ -5,10 +5,15 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using System.Text.Json;
 using MediatR;
+using TodoApp.Application.Common.Models;
+using TodoApp.Application.Todos.Commands;
 using TodoApp.Application.Todos.Commands.CreateTodo;
 using TodoApp.Application.Todos.Commands.UpdateTodo;
 using TodoApp.Application.Todos.Commands.DeleteTodo;
 using TodoApp.Application.Todos.EventHandlers;
+using TodoApp.Domain.Entities;
+using Dimensions = TodoApp.Application.Common.Models.Dimensions;
+using ManufacturerInfo = TodoApp.Application.Common.Models.ManufacturerInfo;
 
 namespace TodoApp.Infrastructure.Kafka;
 
@@ -53,10 +58,10 @@ public class KafkaConsumer : BackgroundService
         // _ = Task.Run(async () => await StartKafkaConsumerAsync(stoppingToken), stoppingToken);
         // _ = Task.Run(async () => await StartKafkaConsumerCDCAsync(stoppingToken), stoppingToken);
         // Khởi chạy CẢ HAI consumers trong các Task riêng biệt
-        var domainConsumerTask = Task.Run(() => 
+        var domainConsumerTask = Task.Run(() =>
             StartKafkaConsumerAsync(stoppingToken), stoppingToken);
-    
-        var cdcConsumerTask = Task.Run(() => 
+
+        var cdcConsumerTask = Task.Run(() =>
             StartKafkaConsumerCDCAsync(stoppingToken), stoppingToken);
 
         // Đợi cả 2 task hoàn thành (sẽ chạy vô tận cho đến khi ứng dụng dừng)
@@ -87,7 +92,7 @@ public class KafkaConsumer : BackgroundService
             {
                 // Tạo consumer
                 using var consumer = new ConsumerBuilder<string, string>(config)
-                    .SetErrorHandler((_, e) => 
+                    .SetErrorHandler((_, e) =>
                     {
                         if (e.IsFatal)
                         {
@@ -95,19 +100,19 @@ public class KafkaConsumer : BackgroundService
                         }
                         else
                         {
-                            _logger.LogWarning($"Lỗi không nghiêm trọng từ Kafka consumer: {e.Reason}");
+                            // _logger.LogWarning($"Lỗi không nghiêm trọng từ Kafka consumer: {e.Reason}");
                         }
                     })
                     .Build();
-                
+
                 try
                 {
                     // Đăng ký nhận thông tin từ topic
                     consumer.Subscribe(_settings.CDCEventsTopic);
-                    
+
                     // Log thông tin đã đăng ký
                     _logger.LogInformation($"Đã đăng ký nhận thông tin từ topic: {_settings.CDCEventsTopic}");
-                    
+
                     // Vòng lặp xử lý message
                     while (!stoppingToken.IsCancellationRequested)
                     {
@@ -115,13 +120,16 @@ public class KafkaConsumer : BackgroundService
                         {
                             // Đọc message từ Kafka với timeout
                             var consumeResult = consumer.Consume(TimeSpan.FromMilliseconds(100));
-                            
+
                             // Nếu có message
                             if (consumeResult != null)
                             {
                                 // Log thông tin nhận được message
-                                _logger.LogInformation($"Đã nhận message từ partition {consumeResult.Partition.Value} với offset {consumeResult.Offset.Value}");
-                                
+                                _logger.LogInformation(
+                                    $"Đã nhận message từ partition {consumeResult.Partition.Value} với offset {consumeResult.Offset.Value}");
+                                //
+                                // await ProcessMessageProduct(consumeResult.Message.Key, consumeResult.Message.Value,
+                                //     stoppingToken);
                                 // Commit offset
                                 consumer.Commit(consumeResult);
                             }
@@ -141,13 +149,15 @@ public class KafkaConsumer : BackgroundService
                 catch (Exception ex)
                 {
                     // Log lỗi nhưng không dừng ứng dụng
-                    _logger.LogWarning(ex, $"Không thể đăng ký nhận thông tin từ topic '{_settings.TodoEventsTopic}'. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+                    _logger.LogWarning(ex,
+                        $"Không thể đăng ký nhận thông tin từ topic '{_settings.TodoEventsTopic}'. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
                 }
             }
             catch (Exception ex)
             {
                 // Log lỗi khi tạo consumer
-                _logger.LogWarning(ex, "Không thể tạo Kafka consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+                _logger.LogWarning(ex,
+                    "Không thể tạo Kafka consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
             }
         }
         catch (OperationCanceledException)
@@ -158,7 +168,8 @@ public class KafkaConsumer : BackgroundService
         catch (Exception ex)
         {
             // Log lỗi không mong đợi
-            _logger.LogWarning(ex, "Lỗi không mong đợi trong Kafka Consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+            _logger.LogWarning(ex,
+                "Lỗi không mong đợi trong Kafka Consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
         }
 
         // Đảm bảo ExecuteAsync không kết thúc khi có lỗi, để ứng dụng tiếp tục chạy
@@ -168,8 +179,7 @@ public class KafkaConsumer : BackgroundService
             _logger.LogDebug("Kafka Consumer service đang chạy...");
         }
     }
-    
-    
+
 
     /// <summary>
     /// Khởi động và chạy Kafka consumer
@@ -199,7 +209,7 @@ public class KafkaConsumer : BackgroundService
             {
                 // Tạo consumer
                 using var consumer = new ConsumerBuilder<string, string>(config)
-                    .SetErrorHandler((_, e) => 
+                    .SetErrorHandler((_, e) =>
                     {
                         if (e.IsFatal)
                         {
@@ -207,19 +217,19 @@ public class KafkaConsumer : BackgroundService
                         }
                         else
                         {
-                            _logger.LogWarning($"Lỗi không nghiêm trọng từ Kafka consumer: {e.Reason}");
+                            // _logger.LogWarning($"Lỗi không nghiêm trọng từ Kafka consumer: {e.Reason}");
                         }
                     })
                     .Build();
-                
+
                 try
                 {
                     // Đăng ký nhận thông tin từ topic
                     consumer.Subscribe(_settings.TodoEventsTopic);
-                    
+
                     // Log thông tin đã đăng ký
                     _logger.LogInformation($"Đã đăng ký nhận thông tin từ topic: {_settings.TodoEventsTopic}");
-                    
+
                     // Vòng lặp xử lý message
                     while (!stoppingToken.IsCancellationRequested)
                     {
@@ -227,16 +237,18 @@ public class KafkaConsumer : BackgroundService
                         {
                             // Đọc message từ Kafka với timeout
                             var consumeResult = consumer.Consume(TimeSpan.FromMilliseconds(100));
-                            
+
                             // Nếu có message
                             if (consumeResult != null)
                             {
                                 // Log thông tin nhận được message
-                                _logger.LogInformation($"Đã nhận message từ partition {consumeResult.Partition.Value} với offset {consumeResult.Offset.Value}");
-                                
+                                _logger.LogInformation(
+                                    $"Đã nhận message từ partition {consumeResult.Partition.Value} với offset {consumeResult.Offset.Value}");
+
                                 // Xử lý message
-                                await ProcessMessage(consumeResult.Message.Key, consumeResult.Message.Value, stoppingToken);
-                                
+                                await ProcessMessage(consumeResult.Message.Key, consumeResult.Message.Value,
+                                    stoppingToken);
+
                                 // Commit offset
                                 consumer.Commit(consumeResult);
                             }
@@ -256,13 +268,15 @@ public class KafkaConsumer : BackgroundService
                 catch (Exception ex)
                 {
                     // Log lỗi nhưng không dừng ứng dụng
-                    _logger.LogWarning(ex, $"Không thể đăng ký nhận thông tin từ topic '{_settings.TodoEventsTopic}'. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+                    _logger.LogWarning(ex,
+                        $"Không thể đăng ký nhận thông tin từ topic '{_settings.TodoEventsTopic}'. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
                 }
             }
             catch (Exception ex)
             {
                 // Log lỗi khi tạo consumer
-                _logger.LogWarning(ex, "Không thể tạo Kafka consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+                _logger.LogWarning(ex,
+                    "Không thể tạo Kafka consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
             }
         }
         catch (OperationCanceledException)
@@ -273,7 +287,8 @@ public class KafkaConsumer : BackgroundService
         catch (Exception ex)
         {
             // Log lỗi không mong đợi
-            _logger.LogWarning(ex, "Lỗi không mong đợi trong Kafka Consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
+            _logger.LogWarning(ex,
+                "Lỗi không mong đợi trong Kafka Consumer. Ứng dụng sẽ tiếp tục chạy, nhưng tính năng đồng bộ dữ liệu có thể bị ảnh hưởng.");
         }
 
         // Đảm bảo ExecuteAsync không kết thúc khi có lỗi, để ứng dụng tiếp tục chạy
@@ -283,6 +298,118 @@ public class KafkaConsumer : BackgroundService
             _logger.LogDebug("Kafka Consumer service đang chạy...");
         }
     }
+
+    /// <summary>
+    /// Xử lý message nhận được từ Kafka
+    /// </summary>
+    /// <param name="key">Khóa của message</param>
+    /// <param name="value">Giá trị của message</param>
+    /// <param name="cancellationToken">Token hủy</param>
+    private async Task ProcessMessageProduct(string key, string value, CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Kiểm tra nội dung message
+            if (string.IsNullOrEmpty(value))
+            {
+                _logger.LogWarning("Nhận được message rỗng, bỏ qua.");
+                return;
+            }
+
+            // Tạo scope để lấy dịch vụ
+            using var scope = _serviceProvider.CreateScope();
+
+            // Lấy mediator
+            var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
+
+            // Phân tích nội dung message để xác định loại sự kiện
+            var messageDocument = JsonDocument.Parse(value);
+            var root = messageDocument.RootElement;
+            var product = new ProductDocumentEvent();
+            try
+            {
+                product = JsonSerializer.Deserialize<ProductDocumentEvent>(value, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+            }
+            catch (Exception e)
+            {
+                if (root.TryGetProperty("id", out JsonElement idElement))
+                {
+                    string id = idElement.GetString();
+                    product = new ProductDocumentEvent()
+                    {
+                        Id = id,
+                        Deleted = "true"
+                    };
+                }
+                else
+                {
+                    Console.WriteLine("Không tìm thấy thuộc tính 'id'");
+                }
+                
+            }
+            
+            // Kiểm tra sự kiện dựa trên các thuộc tính có trong message
+            bool isCreatedEvent = root.TryGetProperty("created_at", out _) && !root.TryGetProperty("updated_at", out _);
+            bool isUpdatedEvent = root.TryGetProperty("updated_at", out _);
+            bool isDeletedEvent =
+                root.TryGetProperty("id", out _) &&
+                root.TryGetProperty("__deleted", out var deletedProp) &&
+                deletedProp.ValueKind == JsonValueKind.True;
+            var productDocument = new ProductDocument()
+            {
+                Id = product.Id,
+                Name = product.Name,
+                Description = product.Description,
+                Category = product.Category,
+                Dimensions = new Dimensions()
+                {
+                    Height = product.DimensionsHeight,
+                    Length = product.DimensionsLength,
+                    Width = product.DimensionsWidth,
+                },
+                Price = product.Price,
+                Status = product.Status,
+                Material = product.Material,
+                Manufacturer = new ManufacturerInfo()
+                {
+                    Name = product.ManufacturerName,
+                    Country = product.ManufacturerCountry,
+                },
+                Tags = product.Tags,
+                ManufacturingDate = MicrosecondsEpochDateTimeConverter.ToDateTimeForEpochMSec(product.ManufacturingDate)
+                    .Value,
+                CreatedAt = MicrosecondsEpochDateTimeConverter.ToDateTimeForEpochMSec(product.CreatedAt).Value,
+                UpdatedAt = MicrosecondsEpochDateTimeConverter.ToDateTimeForEpochMSec(product.UpdatedAt)
+            };
+            if (product.Deleted == "true")
+            {
+                // Tạo notification và gửi đến handler
+                await mediator.Publish(new ProductDeletedNotification(Guid.Parse(product.Id)), cancellationToken);
+                _logger.LogInformation($"Đã xử lý sự kiện Product đã xóa: {product.Id}");
+            }
+            // Xử lý theo loại sự kiện
+            else if (productDocument.CreatedAt != null || productDocument.UpdatedAt.HasValue)
+            {
+                // Tạo notification và gửi đến handler
+                await mediator.Publish(new ProductCreatedNotification(productDocument), cancellationToken);
+                _logger.LogInformation($"Đã xử lý sự kiện Products đã tạo hoặc update: {productDocument.Id}");
+            }
+            else
+            {
+                // Log cảnh báo nếu không xác định được loại sự kiện
+                _logger.LogWarning($"Không thể xác định loại sự kiện từ message: {value}");
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log lỗi khi xử lý message
+            _logger.LogError(ex, $"Lỗi khi xử lý message: {value}");
+        }
+    }
+
 
     /// <summary>
     /// Xử lý message nhận được từ Kafka
@@ -303,7 +430,7 @@ public class KafkaConsumer : BackgroundService
 
             // Tạo scope để lấy dịch vụ
             using var scope = _serviceProvider.CreateScope();
-            
+
             // Lấy mediator
             var mediator = scope.ServiceProvider.GetRequiredService<IMediator>();
 

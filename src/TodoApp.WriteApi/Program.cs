@@ -1,8 +1,12 @@
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using Serilog.Events;
+using Serilog.Formatting.Json;
+using Serilog.Sinks.Elasticsearch;
 using TodoApp.Application;
 using TodoApp.Infrastructure;
 using TodoApp.Infrastructure.Data;
+using TodoApp.Infrastructure.Logging;
 
 // Khởi tạo cấu hình logging
 Log.Logger = new LoggerConfiguration()
@@ -24,7 +28,15 @@ try
         .ReadFrom.Configuration(context.Configuration)
         .ReadFrom.Services(services)
         .Enrich.FromLogContext()
-        .WriteTo.Console());
+        .WriteTo.Console()
+        .WriteTo.File("logs/Write-log.txt", LogEventLevel.Error)
+        .WriteTo.File(new JsonFormatter(),"logs/Write-log.json", LogEventLevel.Error)
+        .WriteTo.Elasticsearch(new ElasticsearchSinkOptions(new Uri("http://localhost:9200"))
+        {
+            AutoRegisterTemplate = true,
+            IndexFormat = "log-app-write",
+            MinimumLogEventLevel = LogEventLevel.Error
+        }));
 
     // Thêm services cho controllers
     builder.Services.AddControllers();
@@ -54,7 +66,7 @@ try
 
     // Thêm các services từ các tầng khác
     builder.Services.AddApplication();
-    builder.Services.AddInfrastructure(builder.Configuration);
+    builder.AddInfrastructure(builder.Configuration);
 
     // Thêm CORS
     builder.Services.AddCors(options =>
@@ -77,9 +89,16 @@ try
     // Tự động áp dụng migration
     using (var scope = app.Services.CreateScope())
     {
-        var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-        context.Database.Migrate();
-        Log.Information("Đã áp dụng migrations cho database");
+        try
+        {
+            var context = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+            context.Database.Migrate();
+            Log.Information("Đã áp dụng migrations cho database");
+        }
+        catch (Exception e)
+        {
+            Log.Error("migrations data đang có vấn đề");
+        }
     }
 
     // Sử dụng CORS
@@ -87,12 +106,14 @@ try
 
     // Sử dụng HTTPS redirection
     app.UseHttpsRedirection();
+    
 
     // Sử dụng routing và endpoints
     app.UseRouting();
     app.UseAuthorization();
     app.MapControllers();
-
+    // sử dụng
+    app.UseMiddleware<LoggingMiddleware>();
     // Chạy ứng dụng
     app.Run();
 }

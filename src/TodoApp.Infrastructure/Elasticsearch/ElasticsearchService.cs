@@ -86,7 +86,17 @@ public class ElasticsearchService : IElasticsearchService
             .Index(indexName)
             .Id(id)
             .Refresh(Refresh.True)
-        );
+        );  
+
+        // Kiểm tra kết quả
+        return indexResponse.IsValid;
+    }
+
+
+    public async Task<bool> IndexAllDocumentAsync<T>(string indexName, List<T> documents) where T : class
+    {
+        // Index tài liệu vào Elasticsearch
+        var indexResponse = await _client.BulkAsync(b => b.Index(indexName).IndexMany(documents).Refresh(Refresh.True));
 
         // Kiểm tra kết quả
         return indexResponse.IsValid;
