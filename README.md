@@ -34,6 +34,7 @@ Todo API là một ứng dụng API hiện đại được xây dựng trên n�
 Dự án Todo API được thiết kế theo kiến trúc **Clean Architecture**, bao gồm 3 tầng chính: **Domain**, **Application** và **Infrastructure**. Mỗi tầng đảm nhận một vai trò riêng biệt để tách biệt logic nghiệp vụ, xử lý và công nghệ. Dưới đây là mô tả cụ thể:
 
 ---
+![image](https://github.com/user-attachments/assets/e1acd119-f0b8-44ce-9a73-be6c03af9f45)
 
 ### 🔷 1. Domain Layer – "Logic nghiệp vụ cốt lõi"
 
@@ -57,7 +58,6 @@ Dự án Todo API được thiết kế theo kiến trúc **Clean Architecture**
 ---
 
 ### 🔶 2. Application Layer – "Điều phối nghiệp vụ"
-![image](https://github.com/user-attachments/assets/e1acd119-f0b8-44ce-9a73-be6c03af9f45)
 
 ### 🎯 Chức năng chính:
 
