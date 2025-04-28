@@ -57,6 +57,7 @@ Dự án Todo API được thiết kế theo kiến trúc **Clean Architecture**
 ---
 
 ### 🔶 2. Application Layer – "Điều phối nghiệp vụ"
+![image](https://github.com/user-attachments/assets/e1acd119-f0b8-44ce-9a73-be6c03af9f45)
 
 ### 🎯 Chức năng chính:
 
