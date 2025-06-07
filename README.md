@@ -1,4 +1,4 @@
-# Tài liệu dự án Todo API (.NET 8.0)
+# Tài liệu kiến trúc dự án API (.NET 8.0)
 
 ## 1. Giới thiệu (Introduction)
 
