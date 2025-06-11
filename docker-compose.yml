@@ -9,7 +9,7 @@ services:
       - "5432:5432"
     environment:
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_PASSWORD=  
       - POSTGRES_DB=tododb
       - POSTGRES_INITDB_ARGS=--wal-level=logical
     volumes:
@@ -224,6 +224,17 @@ services:
       retries: 3
     networks:
       - todoapp-network
+
+  # keycloak:
+  #   image: quay.io/keycloak/keycloak:26.2.4
+  #   ports:
+  #     - "8888:8888"
+  #   environment:
+  #     KC_BOOTSTRAP_ADMIN_USERNAME: admin
+  #     KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+  #     networks:
+  #     - todoapp-network
+  #   command: start-dev
 
   # Todo Write API (commented out)
   # todoapp-write-api:
