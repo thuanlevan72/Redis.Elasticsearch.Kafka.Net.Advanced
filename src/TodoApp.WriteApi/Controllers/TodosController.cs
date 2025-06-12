@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using MediatR;
+using StackExchange.Redis;
 using TodoApp.Application.Todos.Commands.CreateTodo;
 using TodoApp.Application.Todos.Commands.UpdateTodo;
 using TodoApp.Application.Todos.Commands.DeleteTodo;
@@ -15,18 +16,20 @@ public class TodosController : ControllerBase
 {
     private readonly IMediator _mediator;
     private readonly ILogger<TodosController> _logger;
+    private readonly IConnectionMultiplexer _redis;
 
     /// <summary>
     /// Khởi tạo controller với mediator và logger
     /// </summary>
     /// <param name="mediator">Mediator để gửi command</param>
     /// <param name="logger">Logger</param>
-    public TodosController(IMediator mediator, ILogger<TodosController> logger)
+    public TodosController(IMediator mediator, ILogger<TodosController> logger, IConnectionMultiplexer redis)
     {
         // Lưu trữ mediator
         _mediator = mediator;
         // Lưu trữ logger
         _logger = logger;
+        _redis = redis;
     }
 
     /// <summary>
@@ -284,5 +287,13 @@ public class TodosController : ControllerBase
             _logger.LogError(ex, "Lỗi không mong đợi khi đánh dấu Todo có ID: {TodoId} là chưa hoàn thành", id);
             return StatusCode(StatusCodes.Status500InternalServerError, "Lỗi máy chủ khi xử lý yêu cầu");
         }
+    }
+    
+    [HttpPost("send")]
+    public async Task<IActionResult> SendMessage([FromQuery] string message)
+    {
+        var pub = _redis.GetSubscriber();
+        await pub.PublishAsync("chat-room", message);
+        return Ok("📨 Sent");
     }
 }

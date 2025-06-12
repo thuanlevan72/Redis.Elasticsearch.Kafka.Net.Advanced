@@ -114,35 +114,35 @@ public class ProductsController : ControllerBase
             // Gửi query đến handler
             var result = await _mediator.Send(query);
 
-            var productContext = result.Data.Items.Select(item => new Product()
-            {
-                Id = Guid.Parse(item.Id),
-                Name = item.Name,
-                Description = item.Description,
-                Category = item.Category,
-                CreatedAt = item.CreatedAt,
-                UpdatedAt = item.UpdatedAt,
-                Dimensions = new Domain.Entities.Dimensions()
-                {
-                    Height = item.Dimensions.Height,
-                    Length = item.Dimensions.Length,
-                    Width = item.Dimensions.Width
-                },
-                Manufacturer = new Domain.Entities.ManufacturerInfo()
-                {
-                    Country = item.Manufacturer.Country,
-                    Name = item.Manufacturer.Name,
-                },
-                Material = item.Material,
-                Price = item.Price,
-                Status = item.Status,
-                Tags = item.Tags,
-                ManufacturingDate = item.ManufacturingDate
-            }).ToList();
-
-            await _context.Products.AddRangeAsync(productContext);
-
-            await _context.SaveChangesAsync();
+            // var productContext = result.Data.Items.Select(item => new Product()
+            // {
+            //     Id = Guid.Parse(item.Id),
+            //     Name = item.Name,
+            //     Description = item.Description,
+            //     Category = item.Category,
+            //     CreatedAt = item.CreatedAt,
+            //     UpdatedAt = item.UpdatedAt,
+            //     Dimensions = new Domain.Entities.Dimensions()
+            //     {
+            //         Height = item.Dimensions.Height,
+            //         Length = item.Dimensions.Length,
+            //         Width = item.Dimensions.Width
+            //     },
+            //     Manufacturer = new Domain.Entities.ManufacturerInfo()
+            //     {
+            //         Country = item.Manufacturer.Country,
+            //         Name = item.Manufacturer.Name,
+            //     },
+            //     Material = item.Material,
+            //     Price = item.Price,
+            //     Status = item.Status,
+            //     Tags = item.Tags,
+            //     ManufacturingDate = item.ManufacturingDate
+            // }).ToList();
+            //
+            // await _context.Products.AddRangeAsync(productContext);
+            //
+            // await _context.SaveChangesAsync();
             
             // Kiểm tra kết quả
             if (result.Succeeded)

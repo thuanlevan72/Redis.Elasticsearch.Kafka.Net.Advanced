@@ -3,12 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using StackExchange.Redis;
 using TodoApp.Domain.Interfaces;
 using TodoApp.Application.Common.Interfaces;
 using TodoApp.Infrastructure.Data;
 using TodoApp.Infrastructure.Elasticsearch;
 using TodoApp.Infrastructure.Kafka;
 using TodoApp.Infrastructure.Logging;
+using TodoApp.Infrastructure.Redis;
 using TodoApp.Infrastructure.Repositories;
 
 namespace TodoApp.Infrastructure;
@@ -28,6 +30,18 @@ public static class DependencyInjection
     {
         // builder.Logging.ClearProviders();
         IServiceCollection services = builder.Services;
+        
+        
+        // Đăng ký Redis làm Distributed Cache
+        builder.Services.AddSingleton<IConnectionMultiplexer>(sp =>
+        {
+            var options = ConfigurationOptions.Parse(configuration["RedisCacheSettings:ConnectionString"]);
+            options.AbortOnConnectFail = false; // 👈 thêm dòng này
+            return ConnectionMultiplexer.Connect(options);
+        });
+        
+        builder.Services.AddSingleton<ICacheService, RedisCacheService>();
+        builder.Services.AddSingleton<IPubSubService, PubSubService>();
         
         /// đăng ký log trước khi khởi tạo ứng dụng
         var loggerProvider = new MiddlewareLoggerProvider();

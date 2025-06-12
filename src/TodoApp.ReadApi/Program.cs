@@ -92,6 +92,12 @@ try
     app.UseRouting();
     app.UseAuthorization();
     app.MapControllers();
+    // sử dụng web socket8
+    var webSocketOptions = new WebSocketOptions
+    {
+        KeepAliveInterval = TimeSpan.FromMinutes(2)
+    };
+    app.UseWebSockets(); 
     
     // sử dụng
     app.UseMiddleware<LoggingMiddleware>();
